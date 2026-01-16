@@ -80,7 +80,6 @@ public:
         }
       }
       if (o.Has("ipResolve")) ipResolve = o.Get("ipResolve").As<Napi::String>().Utf8Value();
-      if (o.Has("dnsServers")) dnsServers = o.Get("dnsServers").As<Napi::String>().Utf8Value();
       if (o.Has("dohUrl")) dohUrl = o.Get("dohUrl").As<Napi::String>().Utf8Value();
       if (o.Has("ignoreDohTlsErrors")) ignoreDohTlsErrors = o.Get("ignoreDohTlsErrors").As<Napi::Boolean>().Value();
       if (o.Has("userAgent")) userAgent = o.Get("userAgent").As<Napi::String>().Utf8Value();
@@ -194,7 +193,6 @@ public:
     uint32_t effMaxRedirects = maxRedirects;
     int effHttpVersion = httpVersion;
     std::string effIpResolve = ipResolve;
-    std::string effDnsServers = dnsServers;
     std::string effDohUrl = dohUrl;
     bool effIgnoreDohTls = ignoreDohTlsErrors;
     std::string effUserAgent = userAgent;
@@ -213,9 +211,6 @@ public:
     // IMPORTANT: When using c-ares (which curl-impersonate uses statically), 
     // it might not read /etc/resolv.conf correctly in some environments or if permissions issue.
     // Explicitly setting DNS servers helps.
-    if (!effDnsServers.empty()) {
-      curl_easy_setopt(curl, CURLOPT_DNS_SERVERS, effDnsServers.c_str());
-    }
     if (!effDohUrl.empty()) {
       curl_easy_setopt(curl, CURLOPT_DOH_URL, effDohUrl.c_str());
       if (effIgnoreDohTls) {
@@ -270,7 +265,6 @@ public:
         }
       }
       if (init.Has("ipResolve")) effIpResolve = init.Get("ipResolve").As<Napi::String>().Utf8Value();
-      if (init.Has("dnsServers")) effDnsServers = init.Get("dnsServers").As<Napi::String>().Utf8Value();
       if (init.Has("dohUrl")) effDohUrl = init.Get("dohUrl").As<Napi::String>().Utf8Value();
       if (init.Has("ignoreDohTlsErrors")) effIgnoreDohTls = init.Get("ignoreDohTlsErrors").As<Napi::Boolean>().Value();
       if (init.Has("userAgent")) effUserAgent = init.Get("userAgent").As<Napi::String>().Utf8Value();
@@ -348,9 +342,6 @@ public:
 
     if (verbose) {
       curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-    }
-    if (!effDnsServers.empty()) {
-      curl_easy_setopt(curl, CURLOPT_DNS_SERVERS, effDnsServers.c_str());
     }
     if (!effDohUrl.empty()) {
       curl_easy_setopt(curl, CURLOPT_DOH_URL, effDohUrl.c_str());
@@ -533,7 +524,6 @@ private:
   uint32_t maxRedirects{0};
   int httpVersion{0};
   std::string ipResolve;
-  std::string dnsServers;
   std::string dohUrl;
   bool ignoreDohTlsErrors{false};
   std::string userAgent;
