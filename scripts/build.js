@@ -97,6 +97,52 @@ function downloadFile(url, dest) {
     });
 }
 
+async function fetchLinuxHeaders(libDir, version) {
+    const includeDir = path.join(libDir, 'include');
+    if (fs.existsSync(includeDir)) return;
+
+    console.log('Headers missing in Linux package. Fetching from Windows package...');
+    
+    const winFileName = `libcurl-impersonate-v${version}.x86_64-win32.tar.gz`;
+    const winDownloadUrl = `https://github.com/lexiforest/curl-impersonate/releases/download/v${version}/${winFileName}`;
+    const winTarPath = path.join(libDir, winFileName);
+    const tempDir = path.join(libDir, 'temp_headers');
+    
+    try {
+        console.log(`Downloading ${winDownloadUrl}...`);
+        await downloadFile(winDownloadUrl, winTarPath);
+        
+        ensureDir(tempDir);
+        child_process.execSync(`tar -xzf "${winTarPath}" -C "${tempDir}"`);
+        
+        // Locate include directory
+        let foundInclude = path.join(tempDir, 'include');
+        if (!fs.existsSync(foundInclude)) {
+             // Check first level subdirectories
+             const files = fs.readdirSync(tempDir);
+             for (const f of files) {
+                 const sub = path.join(tempDir, f, 'include');
+                 if (fs.statSync(path.join(tempDir, f)).isDirectory() && fs.existsSync(sub)) {
+                     foundInclude = sub;
+                     break;
+                 }
+             }
+        }
+        
+        if (fs.existsSync(foundInclude)) {
+            fs.renameSync(foundInclude, includeDir);
+            console.log('Headers installed successfully.');
+        } else {
+            console.warn('Warning: Could not find include directory in Windows package.');
+        }
+    } catch (e) {
+        console.warn('Warning: Failed to fetch headers from Windows package:', e.message);
+    } finally {
+        rmDir(tempDir);
+        if (fs.existsSync(winTarPath)) fs.unlinkSync(winTarPath);
+    }
+}
+
 // Main logic
 async function main() {
     const rootDir = path.resolve(__dirname, '..');
@@ -107,8 +153,13 @@ async function main() {
     const soName = config.so_name;
     
     // Check if already installed
-    if (fs.existsSync(path.join(libDir, 'include/curl/curl.h')) && (fs.existsSync(path.join(libDir, soName)) || 
-        (config.system === 'Windows' && fs.existsSync(path.join(libDir, 'libcurl.dll'))))) {
+    if (fs.existsSync(path.join(libDir, soName)) || 
+        (config.system === 'Windows' && fs.existsSync(path.join(libDir, 'libcurl.dll')))) {
+        
+        if (config.system === 'Linux') {
+            await fetchLinuxHeaders(libDir, version);
+        }
+        
         console.log('libcurl-impersonate already installed.');
         return;
     }
@@ -160,6 +211,11 @@ async function main() {
                     }
                 });
             }
+        }
+
+        // Linux: fetch headers from Windows package if missing
+        if (config.system === 'Linux') {
+            await fetchLinuxHeaders(libDir, version);
         }
         
         // Clean up tar file
