@@ -14,6 +14,28 @@ struct HeaderCollector {
   std::vector<std::pair<std::string, std::string>> headers;
 };
 
+struct StreamCtx {
+  Napi::Env env;
+  Napi::FunctionReference enqueue;
+};
+
+struct WriteData {
+  std::string* body;
+  StreamCtx* stream;
+};
+
+static size_t write_stream_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
+  WriteData* wd = reinterpret_cast<WriteData*>(userdata);
+  size_t len = size * nmemb;
+  wd->body->append(ptr, len);
+  if (wd->stream) {
+    Napi::Env env = wd->stream->env;
+    Napi::Buffer<uint8_t> buf = Napi::Buffer<uint8_t>::Copy(env, reinterpret_cast<const uint8_t*>(ptr), len);
+    wd->stream->enqueue.Value().Call({ buf });
+  }
+  return size * nmemb;
+}
+
 static size_t header_cb(char* buffer, size_t size, size_t nitems, void* userdata) {
   size_t len = size * nitems;
   std::string line(buffer, len);
@@ -400,8 +422,16 @@ public:
     // Collect body and headers
     std::string respBody;
     HeaderCollector hc;
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &respBody);
+    Napi::Function evalFn = env.Global().Get("eval").As<Napi::Function>();
+    Napi::Function makeHelper = evalFn.Call({ Napi::String::New(env, "(function(){let ctrl;const s=new ReadableStream({start(c){ctrl=c}});return {s,e:function(buf){ctrl.enqueue(buf)},c:function(){ctrl.close()}}})") }).As<Napi::Function>();
+    Napi::Object helper = makeHelper.Call({}).As<Napi::Object>();
+    Napi::Value jsStream = helper.Get("s");
+    Napi::Function enqueueFn = helper.Get("e").As<Napi::Function>();
+    Napi::Function closeFn = helper.Get("c").As<Napi::Function>();
+    StreamCtx streamCtx{ env, Napi::Persistent(enqueueFn) };
+    WriteData wd{ &respBody, &streamCtx };
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_stream_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &wd);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_cb);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &hc);
 
@@ -430,6 +460,7 @@ public:
     curl_easy_cleanup(curl);
 
     if (rc != CURLE_OK) {
+      closeFn.Call({});
       deferred.Reject(Napi::Error::New(env, curl_easy_strerror(rc)).Value());
       return deferred.Promise();
     }
@@ -448,9 +479,7 @@ public:
       hArr.Set((uint32_t)i, pair);
     }
     resp.Set("headers", hArr);
-    // store body
     resp.Set("_body", Napi::String::New(env, respBody));
-    // methods
     resp.Set("text", Napi::Function::New(env, [](const Napi::CallbackInfo& info){
       Napi::Env env = info.Env();
       Napi::Object self = info.This().As<Napi::Object>();
@@ -482,13 +511,11 @@ public:
       d.Resolve(Napi::Buffer<uint8_t>::Copy(env, reinterpret_cast<const uint8_t*>(body.data()), body.size()));
       return d.Promise();
     }));
-    Napi::Function evalFn = env.Global().Get("eval").As<Napi::Function>();
-    Napi::Function makeStream = evalFn.Call({ Napi::String::New(env, "(buf)=>new ReadableStream({start(c){c.enqueue(buf);c.close();}})") }).As<Napi::Function>();
-    Napi::Value jsStream = makeStream.Call({ Napi::Buffer<uint8_t>::Copy(env, reinterpret_cast<const uint8_t*>(respBody.data()), respBody.size()) });
     resp.Set("body", jsStream);
     resp.Set("abort", Napi::Function::New(env, [](const Napi::CallbackInfo& info){
       return info.Env().Undefined();
     }));
+    closeFn.Call({});
 
     deferred.Resolve(resp);
     return deferred.Promise();

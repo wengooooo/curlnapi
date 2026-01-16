@@ -1,0 +1,20 @@
+{
+  "name": "curlnapi-node",
+  "version": "0.1.9",
+  "private": false,
+  "description": "Node binding for curl-impersonate with a requests-like API",
+  "main": "index.wrapper.js",
+  "scripts": {
+    "test": "node examples/test.js"
+  },
+  "optionalDependencies": {
+    "@wengo/curlnapi-linux-x64-gnu": "^0.1.0",
+    "@wengo/curlnapi-win32-x64-msvc": "^0.1.0"
+  },
+  "dependencies": {
+    "@apify/datastructures": "^2.0.3",
+    "@crawlee/core": "^3.15.3",
+    "tough-cookie": "^6.0.0",
+    "tsx": "^4.21.0"
+  }
+}
