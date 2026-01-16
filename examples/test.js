@@ -49,9 +49,9 @@ async function main() {
   
   const client = new Impit({ 
       impersonate: 'chrome', 
-      // proxy, 
+      proxy, 
       timeout: 30000, 
-      connectTimeout: 10000, 
+      connectTimeout: Number(process.env.CONNECT_TIMEOUT || 15000), 
       followRedirects: true, 
       ignoreTlsErrors: false, 
       caPath: getLinuxCAPath(), 

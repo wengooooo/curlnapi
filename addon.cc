@@ -223,6 +223,26 @@ public:
         curl_easy_setopt(curl, CURLOPT_DOH_SSL_VERIFYHOST, 0L);
       }
     }
+    struct curl_slist* dohResolve = NULL;
+    if (!effDohUrl.empty()) {
+      std::string host;
+      size_t p = effDohUrl.find("://");
+      size_t s = (p == std::string::npos) ? 0 : p + 3;
+      size_t e = effDohUrl.find('/', s);
+      host = effDohUrl.substr(s, e == std::string::npos ? std::string::npos : e - s);
+      size_t c = host.find(':');
+      if (c != std::string::npos) host = host.substr(0, c);
+      if (host == "cloudflare-dns.com") {
+        dohResolve = curl_slist_append(dohResolve, "cloudflare-dns.com:443:1.1.1.1");
+        dohResolve = curl_slist_append(dohResolve, "cloudflare-dns.com:443:1.0.0.1");
+      } else if (host == "dns.google") {
+        dohResolve = curl_slist_append(dohResolve, "dns.google:443:8.8.8.8");
+        dohResolve = curl_slist_append(dohResolve, "dns.google:443:8.8.4.4");
+      }
+      if (dohResolve) {
+        curl_easy_setopt(curl, CURLOPT_RESOLVE, dohResolve);
+      }
+    }
     if (!effUserAgent.empty()) curl_easy_setopt(curl, CURLOPT_USERAGENT, effUserAgent.c_str());
     std::string effReferer = referer;
     std::string effCookieJar = cookieJarPath;
@@ -402,6 +422,7 @@ public:
       }
     }
     if (chunk) curl_slist_free_all(chunk);
+    if (dohResolve) curl_slist_free_all(dohResolve);
     curl_easy_cleanup(curl);
 
     if (rc != CURLE_OK) {
