@@ -1,0 +1,23 @@
+{
+  "name": "curlnapi",
+  "version": "0.1.8",
+  "private": false,
+  "description": "Node binding for curl-impersonate with a requests-like API",
+  "main": "index.wrapper.js",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "configure": "node-gyp configure",
+    "build": "node-gyp build",
+    "test": "node examples/test.js"
+  },
+  "gypfile": true,
+  "dependencies": {
+    "@wengo/curlnapi-win32-x64-msvc": "^0.1.0",
+    "node-addon-api": "^7.0.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.0"
+  }
+}
