@@ -57,7 +57,8 @@ async function main() {
       caPath: getLinuxCAPath(), 
       verbose: true,
       ipResolve: 'v4', 
-      dnsServers: '1.1.1.1,8.8.8.8' 
+      dnsServers: process.env.DNS_SERVERS || '1.1.1.1,8.8.8.8',
+      dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query'
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })

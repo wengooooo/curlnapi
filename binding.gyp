@@ -123,7 +123,9 @@
             "<(module_root_dir)/lib64/libbrotlicommon.a",
             "<(module_root_dir)/lib64/libcares.a",
             "-ldl",
-            "-lpthread"
+            "-lpthread",
+            "-lresolv",
+            "-lm"
           ]
         }]
       ]
