@@ -36,6 +36,8 @@ async function main() {
       ignoreTlsErrors: true,
       // Linux: Use system CA certificates if available, or bundled one
       verbose: true,
+      ipResolve: 'v4', // Force IPv4 to avoid potential IPv6 timeout issues
+      dnsServers: '1.1.1.1,8.8.8.8' // Use public DNS to avoid local resolver issues
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })
