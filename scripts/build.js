@@ -97,49 +97,84 @@ function downloadFile(url, dest) {
     });
 }
 
-async function fetchLinuxHeaders(libDir, version) {
+async function setupLinuxHeaders(libDir) {
     const includeDir = path.join(libDir, 'include');
     if (fs.existsSync(includeDir)) return;
 
-    console.log('Headers missing in Linux package. Fetching from Windows package...');
+    console.log('Setting up Linux headers...');
+    const tempDir = path.join(libDir, 'temp_build');
+    ensureDir(tempDir);
+
+    const curlVersion = 'curl-8_15_0';
+    const curlZipUrl = `https://github.com/curl/curl/archive/${curlVersion}.zip`;
+    const curlZipPath = path.join(tempDir, 'curl.zip');
     
-    const winFileName = `libcurl-impersonate-v${version}.x86_64-win32.tar.gz`;
-    const winDownloadUrl = `https://github.com/lexiforest/curl-impersonate/releases/download/v${version}/${winFileName}`;
-    const winTarPath = path.join(libDir, winFileName);
-    const tempDir = path.join(libDir, 'temp_headers');
+    // We clone curl-impersonate to get the patches
+    const impersonateDir = path.join(tempDir, 'curl-impersonate');
     
     try {
-        console.log(`Downloading ${winDownloadUrl}...`);
-        await downloadFile(winDownloadUrl, winTarPath);
+        // 1. Clone curl-impersonate
+        if (!fs.existsSync(impersonateDir)) {
+             console.log('Cloning curl-impersonate...');
+             child_process.execSync(`git clone https://github.com/lexiforest/curl-impersonate.git "${impersonateDir}"`, { stdio: 'inherit' });
+        }
+
+        // 2. Download curl
+        console.log(`Downloading ${curlZipUrl}...`);
+        await downloadFile(curlZipUrl, curlZipPath);
+
+        // 3. Unzip curl
+        console.log('Unzipping curl...');
+        child_process.execSync(`unzip -q -o "${curlZipPath}" -d "${tempDir}"`, { stdio: 'inherit' });
         
-        ensureDir(tempDir);
-        child_process.execSync(`tar -xzf "${winTarPath}" -C "${tempDir}"`);
-        
-        // Locate include directory
-        let foundInclude = path.join(tempDir, 'include');
-        if (!fs.existsSync(foundInclude)) {
-             // Check first level subdirectories
-             const files = fs.readdirSync(tempDir);
-             for (const f of files) {
-                 const sub = path.join(tempDir, f, 'include');
-                 if (fs.statSync(path.join(tempDir, f)).isDirectory() && fs.existsSync(sub)) {
-                     foundInclude = sub;
-                     break;
-                 }
-             }
+        // Find extracted directory (usually curl-curl-8_15_0)
+        const extractedDirs = fs.readdirSync(tempDir).filter(f => f.startsWith('curl-') && f !== 'curl-impersonate' && fs.statSync(path.join(tempDir, f)).isDirectory());
+        let curlSourceDir;
+        if (extractedDirs.length > 0) {
+            curlSourceDir = path.join(tempDir, extractedDirs[0]);
         }
         
-        if (fs.existsSync(foundInclude)) {
-            fs.renameSync(foundInclude, includeDir);
-            console.log('Headers installed successfully.');
-        } else {
-            console.warn('Warning: Could not find include directory in Windows package.');
+        if (!curlSourceDir) {
+            // Fallback: try to find any other directory
+             const dirs = fs.readdirSync(tempDir).filter(f => f !== 'curl-impersonate' && fs.statSync(path.join(tempDir, f)).isDirectory());
+             if (dirs.length > 0) curlSourceDir = path.join(tempDir, dirs[0]);
         }
+
+        if (!curlSourceDir) throw new Error('Could not find extracted curl directory');
+        console.log(`Curl source found at: ${curlSourceDir}`);
+
+        // 4. Patch
+        console.log('Applying patch...');
+        const patchPath = path.join(impersonateDir, 'patches', 'curl.patch');
+        
+        if (!fs.existsSync(patchPath)) {
+            // Fallback: search for curl.patch
+             console.log(`Patch file not found at ${patchPath}, searching...`);
+             // Maybe chrome/patches?
+             const chromePatchPath = path.join(impersonateDir, 'chrome', 'patches', 'curl-8.1.0.patch'); // This is old
+             // User said patches/curl.patch. Let's list files if failed? 
+             // But we are in automation.
+             throw new Error(`Patch file not found at ${patchPath}`);
+        }
+        
+        const patchCmd = `patch -p1 < "${patchPath}"`;
+        // Execute patch in curl source dir
+        child_process.execSync(patchCmd, { cwd: curlSourceDir, stdio: 'inherit', shell: '/bin/bash' });
+        
+        // 5. Copy headers
+        console.log('Copying headers...');
+        const curlInclude = path.join(curlSourceDir, 'include');
+        fs.renameSync(curlInclude, includeDir);
+        
+        console.log('Linux headers set up successfully.');
+
     } catch (e) {
-        console.warn('Warning: Failed to fetch headers from Windows package:', e.message);
+        console.error('Failed to set up Linux headers:', e);
+        console.error('Ensure git, unzip, and patch are installed.');
+        throw e;
     } finally {
+        // Cleanup tempDir
         rmDir(tempDir);
-        if (fs.existsSync(winTarPath)) fs.unlinkSync(winTarPath);
     }
 }
 
@@ -157,7 +192,7 @@ async function main() {
         (config.system === 'Windows' && fs.existsSync(path.join(libDir, 'libcurl.dll')))) {
         
         if (config.system === 'Linux') {
-            await fetchLinuxHeaders(libDir, version);
+            await setupLinuxHeaders(libDir);
         }
         
         console.log('libcurl-impersonate already installed.');
@@ -213,9 +248,9 @@ async function main() {
             }
         }
 
-        // Linux: fetch headers from Windows package if missing
+        // Linux: fetch headers using setupLinuxHeaders
         if (config.system === 'Linux') {
-            await fetchLinuxHeaders(libDir, version);
+            await setupLinuxHeaders(libDir);
         }
         
         // Clean up tar file
