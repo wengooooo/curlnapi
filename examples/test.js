@@ -36,6 +36,7 @@ async function main() {
     console.log('url:', resp.url)
     console.log('headers_count:', resp.headers.length)
     console.log('body_length:', text.length)
+    console.log('body:', text)
   } catch (e) {
     console.error('error:', e && e.message ? e.message : String(e))
     process.exitCode = 1

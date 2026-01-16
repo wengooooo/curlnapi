@@ -18,18 +18,24 @@
   - Windows：安装 Visual Studio Build Tools（MSVC），确保可编译 C++
   - Linux：安装编译工具链（build-essential 等）
 - 安装依赖库（首次或缺库时）
-  - Windows / Linux：下载并整理 libcurl-impersonate 运行依赖
+  - Windows / Linux：下载并整理 libcurl-impersonate 运行依赖（支持 HTTPS_PROXY 环境变量）
     - node scripts/build.js
 - 编译原生模块
+  - npm run configure (首次编译或配置变更时建议运行)
   - npm run build
   - 产物生成于 build/Release/curlnapi.node
+- 打包（生成最终文件）
+  - npm run package
+  - Linux 下会生成 curlnapi-64-gnu/curlnapi-node.x64-gnu.node
+  - Windows 下会生成 curlnapi-win32-64-msvc/ 并包含所需 DLL
 
 ## 测试（源码版本）
-- 固定代理示例（需要本机 127.0.0.1:8080 有代理服务）
+- 自动代理示例
   - node examples/test.js
   - 输出包含 ok、url、headers_count、body_length
 - 说明
-  - 示例脚本默认使用 http://127.0.0.1:8080 作为代理
+  - 脚本自动读取系统代理环境变量 (HTTPS_PROXY/http_proxy)
+  - 默认回退代理：http://127.0.0.1:7890
   - 网络异常会直接抛出错误（Promise reject）；HTTP 错误返回 response.ok=false
 
 ## 测试（npm 包）
