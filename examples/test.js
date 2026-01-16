@@ -23,21 +23,19 @@ const { Impit } = require(modPath)
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
 
 async function main() {
+  targetUrl = 'https://tls.browserleaks.com/json'
   console.log('Using proxy:', proxy || 'none');
-  const targetUrl = 'https://www.google.com'; // Use Google for connectivity test on foreign server
   console.log('Target URL:', targetUrl);
   
   const client = new Impit({ 
       impersonate: 'chrome', 
-      proxy, 
+      // proxy, 
       timeout: 30000, 
       connectTimeout: 10000, 
       followRedirects: true, 
       ignoreTlsErrors: true,
       // Linux: Use system CA certificates if available, or bundled one
-      caPath: process.platform === 'linux' ? '/etc/ssl/certs/ca-certificates.crt' : undefined,
       verbose: true,
-      ipResolve: 'v4' // Force IPv4 to avoid potential IPv6 timeout issues
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })
