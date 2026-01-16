@@ -2,3 +2,4 @@
 /build
 /node_modules
 /curlnapi-win32-64-msvc
+/package-lock.json
