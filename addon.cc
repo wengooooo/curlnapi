@@ -81,6 +81,7 @@ public:
       }
       if (o.Has("ipResolve")) ipResolve = o.Get("ipResolve").As<Napi::String>().Utf8Value();
       if (o.Has("dohUrl")) dohUrl = o.Get("dohUrl").As<Napi::String>().Utf8Value();
+      if (o.Has("dohResolve")) dohResolveString = o.Get("dohResolve").As<Napi::String>().Utf8Value();
       if (o.Has("ignoreDohTlsErrors")) ignoreDohTlsErrors = o.Get("ignoreDohTlsErrors").As<Napi::Boolean>().Value();
       if (o.Has("userAgent")) userAgent = o.Get("userAgent").As<Napi::String>().Utf8Value();
       if (o.Has("referer")) referer = o.Get("referer").As<Napi::String>().Utf8Value();
@@ -194,6 +195,7 @@ public:
     int effHttpVersion = httpVersion;
     std::string effIpResolve = ipResolve;
     std::string effDohUrl = dohUrl;
+    std::string effDohResolve = dohResolveString;
     bool effIgnoreDohTls = ignoreDohTlsErrors;
     std::string effUserAgent = userAgent;
 
@@ -220,6 +222,19 @@ public:
     }
     struct curl_slist* dohResolve = NULL;
     if (!effDohUrl.empty()) {
+      if (!effDohResolve.empty()) {
+        std::string s = effDohResolve;
+        size_t start = 0;
+        while (start <= s.size()) {
+          size_t sep = s.find_first_of(",;", start);
+          std::string item = s.substr(start, sep == std::string::npos ? std::string::npos : sep - start);
+          if (!item.empty()) {
+            dohResolve = curl_slist_append(dohResolve, item.c_str());
+          }
+          if (sep == std::string::npos) break;
+          start = sep + 1;
+        }
+      }
       std::string host;
       size_t p = effDohUrl.find("://");
       size_t s = (p == std::string::npos) ? 0 : p + 3;
@@ -230,9 +245,6 @@ public:
       if (host == "cloudflare-dns.com") {
         dohResolve = curl_slist_append(dohResolve, "cloudflare-dns.com:443:1.1.1.1");
         dohResolve = curl_slist_append(dohResolve, "cloudflare-dns.com:443:1.0.0.1");
-      } else if (host == "dns.google") {
-        dohResolve = curl_slist_append(dohResolve, "dns.google:443:8.8.8.8");
-        dohResolve = curl_slist_append(dohResolve, "dns.google:443:8.8.4.4");
       }
       if (dohResolve) {
         curl_easy_setopt(curl, CURLOPT_RESOLVE, dohResolve);
@@ -266,6 +278,7 @@ public:
       }
       if (init.Has("ipResolve")) effIpResolve = init.Get("ipResolve").As<Napi::String>().Utf8Value();
       if (init.Has("dohUrl")) effDohUrl = init.Get("dohUrl").As<Napi::String>().Utf8Value();
+      if (init.Has("dohResolve")) effDohResolve = init.Get("dohResolve").As<Napi::String>().Utf8Value();
       if (init.Has("ignoreDohTlsErrors")) effIgnoreDohTls = init.Get("ignoreDohTlsErrors").As<Napi::Boolean>().Value();
       if (init.Has("userAgent")) effUserAgent = init.Get("userAgent").As<Napi::String>().Utf8Value();
       if (init.Has("referer")) effReferer = init.Get("referer").As<Napi::String>().Utf8Value();
@@ -525,6 +538,7 @@ private:
   int httpVersion{0};
   std::string ipResolve;
   std::string dohUrl;
+  std::string dohResolveString;
   bool ignoreDohTlsErrors{false};
   std::string userAgent;
   std::string referer;

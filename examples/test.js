@@ -56,7 +56,8 @@ async function main() {
       ignoreTlsErrors: false, 
       caPath: getLinuxCAPath(), 
       verbose: true,
-      dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query'
+      dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query',
+      dohResolve: process.env.DOH_RESOLVE || ''
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })
