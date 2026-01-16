@@ -56,9 +56,9 @@ async function main() {
       ignoreTlsErrors: false, 
       caPath: getLinuxCAPath(), 
       verbose: true,
-      ipResolve: 'v4', 
-      dnsServers: process.env.DNS_SERVERS || '1.1.1.1,8.8.8.8',
-      dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query'
+      // ipResolve: 'v4', 
+      // dnsServers: process.env.DNS_SERVERS || '1.1.1.1,8.8.8.8',
+      // dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query'
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })
