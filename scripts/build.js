@@ -98,6 +98,7 @@ function downloadFile(url, dest) {
 }
 
 async function setupLinuxHeaders(libDir) {
+    return
     const includeDir = path.join(libDir, 'include');
     if (fs.existsSync(includeDir)) return;
 
