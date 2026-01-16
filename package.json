@@ -5,6 +5,7 @@
   "description": "Node binding for curl-impersonate with a requests-like API",
   "main": "index.wrapper.js",
   "scripts": {
+    "preinstall": "node scripts/build.js",
     "configure": "node-gyp configure",
     "build": "node-gyp build",
     "test": "node examples/test.js"

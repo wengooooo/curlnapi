@@ -107,8 +107,8 @@ async function main() {
     const soName = config.so_name;
     
     // Check if already installed
-    if (fs.existsSync(path.join(libDir, soName)) || 
-        (config.system === 'Windows' && fs.existsSync(path.join(libDir, 'libcurl.dll')))) {
+    if (fs.existsSync(path.join(libDir, 'include/curl/curl.h')) && (fs.existsSync(path.join(libDir, soName)) || 
+        (config.system === 'Windows' && fs.existsSync(path.join(libDir, 'libcurl.dll'))))) {
         console.log('libcurl-impersonate already installed.');
         return;
     }
