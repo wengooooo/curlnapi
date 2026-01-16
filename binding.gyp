@@ -121,7 +121,9 @@
             "<(module_root_dir)/lib64/libbrotlidec.a",
             "<(module_root_dir)/lib64/libbrotlienc.a",
             "<(module_root_dir)/lib64/libbrotlicommon.a",
-            "<(module_root_dir)/lib64/libcares.a"
+            "<(module_root_dir)/lib64/libcares.a",
+            "-ldl",
+            "-lpthread"
           ]
         }]
       ]

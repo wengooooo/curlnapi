@@ -22,6 +22,26 @@ const { Impit } = require(modPath)
 // Get proxy from environment
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
 
+// Auto-detect CA path for Linux
+function getLinuxCAPath() {
+    if (process.platform !== 'linux') return undefined;
+    const paths = [
+        '/etc/pki/tls/certs/ca-bundle.crt', // Fedora/RHEL/CentOS
+        '/etc/ssl/certs/ca-certificates.crt', // Debian/Ubuntu/Gentoo
+        '/etc/ssl/ca-bundle.pem', // SUSE/OpenSUSE
+        '/etc/pki/tls/cacert.pem', // OpenELEC
+        '/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem' // CentOS/RHEL 7+
+    ];
+    for (const p of paths) {
+        if (fs.existsSync(p)) {
+            console.log('Using CA Path:', p);
+            return p;
+        }
+    }
+    console.warn('Warning: No common CA certificate bundle found.');
+    return undefined;
+}
+
 async function main() {
   targetUrl = 'https://tls.browserleaks.com/json'
   console.log('Using proxy:', proxy || 'none');
@@ -33,11 +53,11 @@ async function main() {
       timeout: 30000, 
       connectTimeout: 10000, 
       followRedirects: true, 
-      ignoreTlsErrors: true,
-      // Linux: Use system CA certificates if available, or bundled one
+      ignoreTlsErrors: false, 
+      caPath: getLinuxCAPath(), 
       verbose: true,
-      ipResolve: 'v4', // Force IPv4 to avoid potential IPv6 timeout issues
-      dnsServers: '1.1.1.1,8.8.8.8' // Use public DNS to avoid local resolver issues
+      ipResolve: 'v4', 
+      dnsServers: '1.1.1.1,8.8.8.8' 
   })
   try {
     const resp = await client.fetch(targetUrl, { method: 'GET' })
