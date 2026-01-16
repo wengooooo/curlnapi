@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-function rm(dir){ if(fs.existsSync(dir)) fs.rmSync(dir,{recursive:true,force:true}) }
+function cleanFiles(dir){ if(fs.existsSync(dir)) fs.readdirSync(dir).forEach(f=>{const p=path.join(dir,f);if(fs.statSync(p).isFile() && f.endsWith('.node'))fs.unlinkSync(p)}) }
 function mkdir(dir){ if(!fs.existsSync(dir)) fs.mkdirSync(dir,{recursive:true}) }
 function cp(src,dst){ fs.copyFileSync(src,dst) }
 function listDlls(dir){ return fs.existsSync(dir)?fs.readdirSync(dir).filter(f=>f.toLowerCase().endsWith('.dll')).map(f=>path.join(dir,f)):[] }
@@ -17,8 +17,8 @@ function main(){
   else throw new Error(`unsupported platform: ${plat} ${arch}`)
   if(plat==='win32') outName = 'curlnapi-node.win32-x64-msvc'
   else if(plat==='linux') outName = 'curlnapi-node.x64-gnu'
-  rm(outDir)
   mkdir(outDir)
+  cleanFiles(outDir)
   cp(nodePath, path.join(outDir, `${outName}.node`))
   if(plat==='win32'){
     const dlls = listDlls(path.join(root,'lib64'))

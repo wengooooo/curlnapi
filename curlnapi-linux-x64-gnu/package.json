@@ -10,9 +10,7 @@
   ],
   "main": "curlnapi-node.linux-x64-gnu.node",
   "files": [
-    "curlnapi-node.linux-x64-gnu.node",
-    "libcurl.so",
-    "zlib.so" 
+    "curlnapi-node.linux-x64-gnu.node"
   ],
   "description": "Curlnapi for JavaScript",
   "license": "Apache-2.0",
