@@ -1,0 +1,41 @@
+{
+  "name": "@wengo/curlnapi-linux-x64-gnu",
+  "homepage": "https://github.com/wengooooo/curlnapi#readme",
+  "version": "0.1.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "curlnapi-node.linux-x64-gnu.node",
+  "files": [
+    "curlnapi-node.linux-x64-gnu.node",
+    "libcurl.so",
+    "zlib.so" 
+  ],
+  "description": "Curlnapi for JavaScript",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wengooooo/curlnapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wengooooo/curlnapi/issues"
+  },
+  "keywords": [
+    "native-addon",
+    "curl",
+    "impersonate",
+    "linux",
+    "x64"
+  ],
+  "author": "wengooooo"
+  ,"publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

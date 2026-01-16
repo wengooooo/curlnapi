@@ -1,0 +1,41 @@
+{
+  "name": "@wengo/curlnapi-win32-x64-msvc",
+  "homepage": "https://github.com/wengooooo/curlnapi#readme",
+  "version": "0.1.0",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "curlnapi-node.win32-x64-msvc.node",
+  "files": [
+    "curlnapi-node.win32-x64-msvc.node",
+    "libcurl.dll",
+    "zlib.dll"
+  ],
+  "description": "Curlnapi for JavaScript",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wengooooo/curlnapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wengooooo/curlnapi/issues"
+  },
+  "keywords": [
+    "native-addon",
+    "curl",
+    "impersonate",
+    "win32",
+    "x64"
+  ],
+  "author": "wengooooo"
+  ,"publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

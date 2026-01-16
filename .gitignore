@@ -1,5 +1,9 @@
 /lib64
 /build
 /node_modules
-/curlnapi-win32-64-msvc
 /package-lock.json
+/curlnapi-linux-x64-gnu/*.npmrc
+/curlnapi-win32-64-msvc/*.npmrc
+/curlnapi-win32-64-msvc/curlnapi-node.win32-x64-msvc.node
+/curlnapi-win32-64-msvc/libcurl.dll
+/curlnapi-win32-64-msvc/zlib.dll
