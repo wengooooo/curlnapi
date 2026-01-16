@@ -19,10 +19,11 @@ if (!fs.existsSync(modPath) && fs.existsSync(path.join(baseDir, 'curlnapi.node')
   modPath = path.join(baseDir, 'curlnapi.node')
 }
 const { Impit } = require(modPath)
-const proxy = 'http://127.0.0.1:8080'
+// const proxy = 'http://127.0.0.1:8080'
 
 async function main() {
-  const client = new Impit({ impersonate: 'chrome', proxy, timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
+  // const client = new Impit({ impersonate: 'chrome', proxy, timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
+  const client = new Impit({ impersonate: 'chrome', timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
   try {
     const resp = await client.fetch('https://www.amazon.com', { method: 'GET', headers: { 
         Accept: 'text/html',
