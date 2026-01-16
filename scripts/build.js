@@ -150,16 +150,22 @@ async function setupLinuxHeaders(libDir) {
         if (!fs.existsSync(patchPath)) {
             // Fallback: search for curl.patch
              console.log(`Patch file not found at ${patchPath}, searching...`);
-             // Maybe chrome/patches?
-             const chromePatchPath = path.join(impersonateDir, 'chrome', 'patches', 'curl-8.1.0.patch'); // This is old
-             // User said patches/curl.patch. Let's list files if failed? 
-             // But we are in automation.
              throw new Error(`Patch file not found at ${patchPath}`);
         }
         
-        const patchCmd = `patch -p1 < "${patchPath}"`;
-        // Execute patch in curl source dir
-        child_process.execSync(patchCmd, { cwd: curlSourceDir, stdio: 'inherit', shell: '/bin/bash' });
+        try {
+            // Try using git apply first since git is likely installed (we just used it to clone)
+            // and 'patch' command might be missing on some minimal systems.
+            console.log('Attempting to patch using git apply...');
+            child_process.execSync(`git apply -p1 --verbose "${patchPath}"`, { cwd: curlSourceDir, stdio: 'inherit' });
+        } catch (gitErr) {
+            console.warn('git apply failed or not available, falling back to patch command...');
+            console.warn(gitErr.message);
+            
+            // Fallback to 'patch' command
+            const patchCmd = `patch -p1 < "${patchPath}"`;
+            child_process.execSync(patchCmd, { cwd: curlSourceDir, stdio: 'inherit', shell: '/bin/bash' });
+        }
         
         // 5. Copy headers
         console.log('Copying headers...');
