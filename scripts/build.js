@@ -177,7 +177,15 @@ async function setupLinuxHeaders(libDir) {
         // Verify patch success
         const curlH = fs.readFileSync(path.join(curlSourceDir, 'include', 'curl', 'curl.h'), 'utf8');
         if (!curlH.includes('curl_easy_impersonate')) {
-             throw new Error('Patch was not applied correctly (curl_easy_impersonate not found in curl.h)');
+             console.log('Patch verification failed. Checking easy.h...');
+             // Check easy.h instead, as sometimes definitions are there
+             const easyH = fs.readFileSync(path.join(curlSourceDir, 'include', 'curl', 'easy.h'), 'utf8');
+             if (!easyH.includes('curl_easy_impersonate')) {
+                 console.error('Content of curl.h (first 500 chars):', curlH.substring(0, 500));
+                 throw new Error('Patch was not applied correctly (curl_easy_impersonate not found in curl.h or easy.h)');
+             } else {
+                 console.log('Found curl_easy_impersonate in easy.h, proceeding.');
+             }
         }
         
         // 5. Copy headers
