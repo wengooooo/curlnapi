@@ -25,7 +25,8 @@ async function main() {
   // const client = new Impit({ impersonate: 'chrome', proxy, timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
   const client = new Impit({ impersonate: 'chrome', timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
   try {
-    const resp = await client.fetch('https://www.amazon.com', { method: 'GET', headers: { 
+    const resp = await client.fetch('https://tls.browserleaks.com/json', { method: 'GET', headers: { 
+    // const resp = await client.fetch('https://www.amazon.com', { method: 'GET', headers: { 
         Accept: 'text/html',
         Cookie: 'session-id=132-8225125-0523234; i18n-prefs=USD; sp-cdn=\"L5Z9:CN\"; ubid-main=132-8225125-0523234; session-id-time=2082787201l; csm-hit=tb:132-8225125-0523234|1694522401234&adb:adid=A13V1IB3VIYZZH&adb:session-id=132-8225125-0523234'
     } })
