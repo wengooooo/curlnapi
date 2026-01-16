@@ -98,112 +98,24 @@ function downloadFile(url, dest) {
 }
 
 async function setupLinuxHeaders(libDir) {
-    return
     const includeDir = path.join(libDir, 'include');
-    if (fs.existsSync(includeDir)) return;
+    const curlIncludeDir = path.join(includeDir, 'curl');
+    const targetCurlH = path.join(curlIncludeDir, 'curl.h');
 
-    console.log('Setting up Linux headers...');
-    const tempDir = path.join(libDir, 'temp_build');
-    ensureDir(tempDir);
+    if (fs.existsSync(targetCurlH)) return;
 
-    const curlVersion = 'curl-8_15_0';
-    const curlZipUrl = `https://github.com/curl/curl/archive/${curlVersion}.zip`;
-    const curlZipPath = path.join(tempDir, 'curl.zip');
+    console.log('Setting up Linux headers from local file...');
     
-    // We clone curl-impersonate to get the patches
-    const impersonateDir = path.join(tempDir, 'curl-impersonate');
-    
-    try {
-        // 1. Clone curl-impersonate
-        if (!fs.existsSync(impersonateDir)) {
-             console.log('Cloning curl-impersonate...');
-             child_process.execSync(`git clone https://github.com/lexiforest/curl-impersonate.git "${impersonateDir}"`, { stdio: 'inherit' });
-        }
-
-        // 2. Download curl
-        console.log(`Downloading ${curlZipUrl}...`);
-        await downloadFile(curlZipUrl, curlZipPath);
-
-        // 3. Unzip curl
-        console.log('Unzipping curl...');
-        child_process.execSync(`unzip -q -o "${curlZipPath}" -d "${tempDir}"`, { stdio: 'inherit' });
-        
-        // Find extracted directory (usually curl-curl-8_15_0)
-        const extractedDirs = fs.readdirSync(tempDir).filter(f => f.startsWith('curl-') && f !== 'curl-impersonate' && fs.statSync(path.join(tempDir, f)).isDirectory());
-        let curlSourceDir;
-        if (extractedDirs.length > 0) {
-            curlSourceDir = path.join(tempDir, extractedDirs[0]);
-        }
-        
-        if (!curlSourceDir) {
-            // Fallback: try to find any other directory
-             const dirs = fs.readdirSync(tempDir).filter(f => f !== 'curl-impersonate' && fs.statSync(path.join(tempDir, f)).isDirectory());
-             if (dirs.length > 0) curlSourceDir = path.join(tempDir, dirs[0]);
-        }
-
-        if (!curlSourceDir) throw new Error('Could not find extracted curl directory');
-        console.log(`Curl source found at: ${curlSourceDir}`);
-
-        // 4. Patch
-        console.log('Applying patch...');
-        const patchPath = path.join(impersonateDir, 'patches', 'curl.patch');
-        
-        if (!fs.existsSync(patchPath)) {
-            // Fallback: search for curl.patch
-             console.log(`Patch file not found at ${patchPath}, searching...`);
-             throw new Error(`Patch file not found at ${patchPath}`);
-        }
-        
-        try {
-            // Try using git apply first since git is likely installed (we just used it to clone)
-            // and 'patch' command might be missing on some minimal systems.
-            console.log('Attempting to patch using git apply...');
-            
-            // Initialize git repo to ensure git apply works reliably
-            if (!fs.existsSync(path.join(curlSourceDir, '.git'))) {
-                child_process.execSync('git init', { cwd: curlSourceDir, stdio: 'ignore' });
-                child_process.execSync('git add .', { cwd: curlSourceDir, stdio: 'ignore' });
-            }
-            
-            child_process.execSync(`git apply -p1 --verbose --ignore-whitespace "${patchPath}"`, { cwd: curlSourceDir, stdio: 'inherit' });
-        } catch (gitErr) {
-            console.warn('git apply failed or not available, falling back to patch command...');
-            console.warn(gitErr.message);
-            
-            // Fallback to 'patch' command
-            const patchCmd = `patch -p1 < "${patchPath}"`;
-            child_process.execSync(patchCmd, { cwd: curlSourceDir, stdio: 'inherit', shell: '/bin/bash' });
-        }
-        
-        // Verify patch success
-        const curlH = fs.readFileSync(path.join(curlSourceDir, 'include', 'curl', 'curl.h'), 'utf8');
-        if (!curlH.includes('curl_easy_impersonate')) {
-             console.log('Patch verification failed. Checking easy.h...');
-             // Check easy.h instead, as sometimes definitions are there
-             const easyH = fs.readFileSync(path.join(curlSourceDir, 'include', 'curl', 'easy.h'), 'utf8');
-             if (!easyH.includes('curl_easy_impersonate')) {
-                 console.error('Content of curl.h (first 500 chars):', curlH.substring(0, 500));
-                 throw new Error('Patch was not applied correctly (curl_easy_impersonate not found in curl.h or easy.h)');
-             } else {
-                 console.log('Found curl_easy_impersonate in easy.h, proceeding.');
-             }
-        }
-        
-        // 5. Copy headers
-        console.log('Copying headers...');
-        const curlInclude = path.join(curlSourceDir, 'include');
-        fs.renameSync(curlInclude, includeDir);
-        
-        console.log('Linux headers set up successfully.');
-
-    } catch (e) {
-        console.error('Failed to set up Linux headers:', e);
-        console.error('Ensure git, unzip, and patch are installed.');
-        throw e;
-    } finally {
-        // Cleanup tempDir
-        rmDir(tempDir);
+    const localCurlH = path.join(__dirname, 'curl.h');
+    if (!fs.existsSync(localCurlH)) {
+        throw new Error(`Local header file not found: ${localCurlH}`);
     }
+
+    ensureDir(curlIncludeDir);
+    fs.copyFileSync(localCurlH, targetCurlH);
+    
+    console.log(`Copied ${localCurlH} to ${targetCurlH}`);
+    console.log('Linux headers set up successfully.');
 }
 
 // Main logic
