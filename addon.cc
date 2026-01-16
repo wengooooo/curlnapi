@@ -198,6 +198,32 @@ public:
     std::string effDohUrl = dohUrl;
     bool effIgnoreDohTls = ignoreDohTlsErrors;
     std::string effUserAgent = userAgent;
+
+    // Apply other options...
+    if (effConnectTimeout > 0) curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, effConnectTimeout);
+    if (effMaxRedirects > 0) curl_easy_setopt(curl, CURLOPT_MAXREDIRS, effMaxRedirects);
+    if (effHttpVersion != 0) {
+      if (effHttpVersion == 2) curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+      else if (effHttpVersion == 3) curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_3);
+    }
+    if (!effIpResolve.empty()) {
+      if (effIpResolve == "v4") curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+      else if (effIpResolve == "v6") curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+    }
+    // IMPORTANT: When using c-ares (which curl-impersonate uses statically), 
+    // it might not read /etc/resolv.conf correctly in some environments or if permissions issue.
+    // Explicitly setting DNS servers helps.
+    if (!effDnsServers.empty()) {
+      curl_easy_setopt(curl, CURLOPT_DNS_SERVERS, effDnsServers.c_str());
+    }
+    if (!effDohUrl.empty()) {
+      curl_easy_setopt(curl, CURLOPT_DOH_URL, effDohUrl.c_str());
+      if (effIgnoreDohTls) {
+        curl_easy_setopt(curl, CURLOPT_DOH_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_DOH_SSL_VERIFYHOST, 0L);
+      }
+    }
+    if (!effUserAgent.empty()) curl_easy_setopt(curl, CURLOPT_USERAGENT, effUserAgent.c_str());
     std::string effReferer = referer;
     std::string effCookieJar = cookieJarPath;
     std::string effProxyType = proxyType;
