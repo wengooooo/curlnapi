@@ -157,7 +157,14 @@ async function setupLinuxHeaders(libDir) {
             // Try using git apply first since git is likely installed (we just used it to clone)
             // and 'patch' command might be missing on some minimal systems.
             console.log('Attempting to patch using git apply...');
-            child_process.execSync(`git apply -p1 --verbose "${patchPath}"`, { cwd: curlSourceDir, stdio: 'inherit' });
+            
+            // Initialize git repo to ensure git apply works reliably
+            if (!fs.existsSync(path.join(curlSourceDir, '.git'))) {
+                child_process.execSync('git init', { cwd: curlSourceDir, stdio: 'ignore' });
+                child_process.execSync('git add .', { cwd: curlSourceDir, stdio: 'ignore' });
+            }
+            
+            child_process.execSync(`git apply -p1 --verbose --ignore-whitespace "${patchPath}"`, { cwd: curlSourceDir, stdio: 'inherit' });
         } catch (gitErr) {
             console.warn('git apply failed or not available, falling back to patch command...');
             console.warn(gitErr.message);
@@ -165,6 +172,12 @@ async function setupLinuxHeaders(libDir) {
             // Fallback to 'patch' command
             const patchCmd = `patch -p1 < "${patchPath}"`;
             child_process.execSync(patchCmd, { cwd: curlSourceDir, stdio: 'inherit', shell: '/bin/bash' });
+        }
+        
+        // Verify patch success
+        const curlH = fs.readFileSync(path.join(curlSourceDir, 'include', 'curl', 'curl.h'), 'utf8');
+        if (!curlH.includes('curl_easy_impersonate')) {
+             throw new Error('Patch was not applied correctly (curl_easy_impersonate not found in curl.h)');
         }
         
         // 5. Copy headers
