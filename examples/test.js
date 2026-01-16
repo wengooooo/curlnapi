@@ -19,11 +19,23 @@ if (!fs.existsSync(modPath) && fs.existsSync(path.join(baseDir, 'curlnapi.node')
   modPath = path.join(baseDir, 'curlnapi.node')
 }
 const { Impit } = require(modPath)
-// const proxy = 'http://127.0.0.1:8080'
+// Get proxy from environment
+const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
 
 async function main() {
-  // const client = new Impit({ impersonate: 'chrome', proxy, timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
-  const client = new Impit({ impersonate: 'chrome', timeout: 20000, followRedirects: true, ignoreTlsErrors: true })
+  console.log('Using proxy:', proxy || 'none');
+  console.log('Target URL: https://tls.browserleaks.com/json');
+  
+  const client = new Impit({ 
+      impersonate: 'chrome', 
+      proxy, 
+      timeout: 30000, 
+      connectTimeout: 10000, 
+      followRedirects: true, 
+      ignoreTlsErrors: true,
+      // Linux: Use system CA certificates if available, or bundled one
+      caPath: process.platform === 'linux' ? '/etc/ssl/certs/ca-certificates.crt' : undefined
+  })
   try {
     const resp = await client.fetch('https://tls.browserleaks.com/json', { method: 'GET', headers: { 
     // const resp = await client.fetch('https://www.amazon.com', { method: 'GET', headers: { 
