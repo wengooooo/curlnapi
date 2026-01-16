@@ -58,6 +58,7 @@ public:
     Napi::Env env = info.Env();
     if (info.Length() >= 1 && info[0].IsObject()) {
       Napi::Object o = info[0].As<Napi::Object>();
+      if (o.Has("verbose")) verbose = o.Get("verbose").As<Napi::Boolean>().Value();
       if (o.Has("browser")) browser = normalizeBrowser(o.Get("browser").As<Napi::String>().Utf8Value());
       if (o.Has("impersonate")) browser = normalizeBrowser(o.Get("impersonate").As<Napi::String>().Utf8Value());
       if (o.Has("timeout")) timeoutMs = o.Get("timeout").As<Napi::Number>().Uint32Value();
@@ -298,6 +299,10 @@ public:
       else if (effIpResolve == "v6") ir = CURL_IPRESOLVE_V6;
       curl_easy_setopt(curl, CURLOPT_IPRESOLVE, ir);
     }
+
+    if (verbose) {
+      curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    }
     if (!effDnsServers.empty()) {
       curl_easy_setopt(curl, CURLOPT_DNS_SERVERS, effDnsServers.c_str());
     }
@@ -476,6 +481,7 @@ private:
   std::string proxyPassword;
   std::string noProxy;
   bool ignoreProxyTlsErrors{false};
+  bool verbose{false};
   uint32_t connectTimeoutMs{0};
   uint32_t maxRedirects{0};
   int httpVersion{0};
