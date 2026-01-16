@@ -8,6 +8,7 @@
     "preinstall": "node scripts/build.js",
     "configure": "node-gyp configure",
     "build": "node-gyp build",
+    "package": "node scripts/package.js",
     "test": "node examples/test.js"
   },
   "gypfile": true,
