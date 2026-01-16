@@ -24,7 +24,8 @@ const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.
 
 async function main() {
   console.log('Using proxy:', proxy || 'none');
-  console.log('Target URL: https://tls.browserleaks.com/json');
+  const targetUrl = 'https://www.google.com'; // Use Google for connectivity test on foreign server
+  console.log('Target URL:', targetUrl);
   
   const client = new Impit({ 
       impersonate: 'chrome', 
@@ -34,14 +35,12 @@ async function main() {
       followRedirects: true, 
       ignoreTlsErrors: true,
       // Linux: Use system CA certificates if available, or bundled one
-      caPath: process.platform === 'linux' ? '/etc/ssl/certs/ca-certificates.crt' : undefined
+      caPath: process.platform === 'linux' ? '/etc/ssl/certs/ca-certificates.crt' : undefined,
+      verbose: true,
+      ipResolve: 'v4' // Force IPv4 to avoid potential IPv6 timeout issues
   })
   try {
-    const resp = await client.fetch('https://tls.browserleaks.com/json', { method: 'GET', headers: { 
-    // const resp = await client.fetch('https://www.amazon.com', { method: 'GET', headers: { 
-        Accept: 'text/html',
-        Cookie: 'session-id=132-8225125-0523234; i18n-prefs=USD; sp-cdn=\"L5Z9:CN\"; ubid-main=132-8225125-0523234; session-id-time=2082787201l; csm-hit=tb:132-8225125-0523234|1694522401234&adb:adid=A13V1IB3VIYZZH&adb:session-id=132-8225125-0523234'
-    } })
+    const resp = await client.fetch(targetUrl, { method: 'GET' })
     const text = await resp.text()
     console.log('status:', resp.status)
     console.log('ok:', resp.ok)
