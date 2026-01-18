@@ -30,17 +30,23 @@ async function parseFetchOptions(resource, init) {
   } else {
     url = resource
   }
-  options.headers = canonicalizeHeaders(options?.headers)
+  const headerEntries = canonicalizeHeaders(options?.headers)
   if (options?.body) {
     const { body, type } = await castToTypedArray(options.body)
     options.body = body
-    if (type && !options.headers.some(([k]) => String(k).toLowerCase() === 'content-type')) {
-      options.headers.push(['Content-Type', type])
+    if (type && !headerEntries.some(([k]) => String(k).toLowerCase() === 'content-type')) {
+      headerEntries.push(['Content-Type', type])
     }
   } else {
     delete options.body
   }
-  const out = { url, method: options.method, headers: options.headers, body: options.body, signal: options.signal }
+  const out = {
+    url,
+    method: options.method,
+    headers: Object.fromEntries(headerEntries),
+    body: options.body,
+    signal: options.signal,
+  }
   if (typeof options.timeout === 'number') out.timeout = options.timeout
   return out
 }
@@ -109,4 +115,3 @@ module.exports.HttpMethod = {
   TRACE: 'TRACE',
   CONNECT: 'CONNECT',
 }
-

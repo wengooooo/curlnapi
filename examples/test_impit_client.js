@@ -10,6 +10,7 @@ async function main() {
       ignoreTlsErrors: false, 
       caPath: 'E:\\curlnapi\\examples\\cacert.pem', 
       verbose: true,
+      debug:  true,
       dohUrl: process.env.DOH_URL || 'https://cloudflare-dns.com/dns-query',
       dohResolve: process.env.DOH_RESOLVE || '',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

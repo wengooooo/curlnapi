@@ -2,7 +2,38 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 #include "curl/curl.h"
+static void trim(std::string& s) {
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch){ return !std::isspace(ch); }));
+  while (!s.empty() && std::isspace((unsigned char)s.back())) s.pop_back();
+}
+static bool sanitizeHeaderKV(std::string& key, std::string& val) {
+  trim(key);
+  trim(val);
+  if (val.empty() && !key.empty()) {
+    auto p = key.find(':');
+    if (p != std::string::npos) {
+      std::string k = key.substr(0, p);
+      std::string v = key.substr(p + 1);
+      trim(k);
+      trim(v);
+      key = k;
+      val = v;
+    } else {
+      auto e = key.find('=');
+      if (e != std::string::npos) {
+        std::string k = key.substr(0, e);
+        std::string v = key.substr(e + 1);
+        trim(k);
+        trim(v);
+        key = k;
+        val = v;
+      }
+    }
+  }
+  return !key.empty() && !val.empty();
+}
 
 static size_t write_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
   std::string* s = reinterpret_cast<std::string*>(userdata);
@@ -45,7 +76,7 @@ static size_t header_cb(char* buffer, size_t size, size_t nitems, void* userdata
   if (pos != std::string::npos) {
     std::string key = line.substr(0, pos);
     std::string val = line.substr(pos + 1);
-    // trim leading spaces and trailing CRLF
+    trim(key);
     val.erase(val.begin(), std::find_if(val.begin(), val.end(), [](unsigned char ch){ return !std::isspace(ch); }));
     while (!val.empty() && (val.back()=='\r' || val.back()=='\n')) val.pop_back();
     ((HeaderCollector*)userdata)->headers.emplace_back(key, val);
@@ -81,6 +112,7 @@ public:
     if (info.Length() >= 1 && info[0].IsObject()) {
       Napi::Object o = info[0].As<Napi::Object>();
       if (o.Has("verbose") && o.Get("verbose").IsBoolean()) verbose = o.Get("verbose").As<Napi::Boolean>().Value();
+      if (o.Has("debug") && o.Get("debug").IsBoolean()) verbose = o.Get("debug").As<Napi::Boolean>().Value();
       if (o.Has("browser") && o.Get("browser").IsString()) browser = normalizeBrowser(o.Get("browser").As<Napi::String>().Utf8Value());
       if (o.Has("impersonate") && o.Get("impersonate").IsString()) browser = normalizeBrowser(o.Get("impersonate").As<Napi::String>().Utf8Value());
       if (o.Has("timeout") && o.Get("timeout").IsNumber()) timeoutMs = o.Get("timeout").As<Napi::Number>().Uint32Value();
@@ -88,6 +120,7 @@ public:
       if (o.Has("caPath") && o.Get("caPath").IsString()) caPath = o.Get("caPath").As<Napi::String>().Utf8Value();
       if (o.Has("followRedirects") && o.Get("followRedirects").IsBoolean()) followRedirects = o.Get("followRedirects").As<Napi::Boolean>().Value();
       if (o.Has("proxy") && o.Get("proxy").IsString()) proxyUrl = o.Get("proxy").As<Napi::String>().Utf8Value();
+      if (o.Has("proxyUrl") && o.Get("proxyUrl").IsString()) proxyUrl = o.Get("proxyUrl").As<Napi::String>().Utf8Value();
       if (o.Has("proxy_username") && o.Get("proxy_username").IsString()) proxyUsername = o.Get("proxy_username").As<Napi::String>().Utf8Value();
       if (o.Has("proxy_password") && o.Get("proxy_password").IsString()) proxyPassword = o.Get("proxy_password").As<Napi::String>().Utf8Value();
       if (o.Has("ignoreProxyTlsErrors") && o.Get("ignoreProxyTlsErrors").IsBoolean()) ignoreProxyTlsErrors = o.Get("ignoreProxyTlsErrors").As<Napi::Boolean>().Value();
@@ -128,10 +161,16 @@ public:
       if (o.Has("headers") && o.Get("headers").IsObject()) {
         Napi::Object h = o.Get("headers").As<Napi::Object>();
         auto props = h.GetPropertyNames();
-        for (uint32_t i=0;i<props.Length();++i) {
-          std::string k = props.Get(i).As<Napi::String>().Utf8Value();
-          std::string v = h.Get(k).As<Napi::String>().Utf8Value();
-          defaultHeaders.emplace_back(k, v);
+        for (uint32_t i = 0; i < props.Length(); ++i) {
+          Napi::Value keyVal = props.Get(i);
+          std::string k = keyVal.As<Napi::String>().Utf8Value();
+          Napi::Value valVal = h.Get(keyVal);
+          std::string v = valVal.IsString()
+            ? valVal.As<Napi::String>().Utf8Value()
+            : valVal.ToString().Utf8Value();
+          if (sanitizeHeaderKV(k, v)) {
+            defaultHeaders.emplace_back(k, v);
+          }
         }
       }
     }
@@ -158,10 +197,16 @@ public:
       if (init.Has("headers") && init.Get("headers").IsObject()) {
         Napi::Object h = init.Get("headers").As<Napi::Object>();
         auto props = h.GetPropertyNames();
-        for (uint32_t i=0;i<props.Length();++i) {
-          std::string k = props.Get(i).As<Napi::String>().Utf8Value();
-          std::string v = h.Get(k).IsString() ? h.Get(k).As<Napi::String>().Utf8Value() : h.Get(k).ToString().Utf8Value();
-          headers.emplace_back(k, v);
+        for (uint32_t i = 0; i < props.Length(); ++i) {
+          Napi::Value keyVal = props.Get(i);
+          std::string k = keyVal.As<Napi::String>().Utf8Value();
+          Napi::Value valVal = h.Get(keyVal);
+          std::string v = valVal.IsString()
+            ? valVal.As<Napi::String>().Utf8Value()
+            : valVal.ToString().Utf8Value();
+          if (sanitizeHeaderKV(k, v)) {
+            headers.emplace_back(k, v);
+          }
         }
       }
       if (init.Has("body")) {
@@ -377,6 +422,10 @@ public:
 
     if (verbose) {
       curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+      std::cerr << "[curlnapi] " << upperMethod << " " << url << "\n";
+      for (auto& kv : headers) {
+        std::cerr << "[curlnapi] > " << kv.first << ": " << kv.second << "\n";
+      }
     }
     if (!effDohUrl.empty()) {
       curl_easy_setopt(curl, CURLOPT_DOH_URL, effDohUrl.c_str());
@@ -397,7 +446,20 @@ public:
     // Headers
     struct curl_slist* chunk = NULL;
     for (auto& kv : headers) {
-      std::string line = kv.first + ": " + kv.second;
+      std::string k = kv.first;
+      std::string v = kv.second;
+      if (!effUserAgent.empty()) {
+        std::string lk = k;
+        std::transform(lk.begin(), lk.end(), lk.begin(), ::tolower);
+        if (lk == "user-agent") continue;
+      }
+      if (!effReferer.empty()) {
+        std::string lk2 = k;
+        std::transform(lk2.begin(), lk2.end(), lk2.begin(), ::tolower);
+        if (lk2 == "referer") continue;
+      }
+      if (!sanitizeHeaderKV(k, v)) continue;
+      std::string line = k + ": " + v;
       chunk = curl_slist_append(chunk, line.c_str());
     }
     if (chunk) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -441,6 +503,9 @@ public:
     if (rc == CURLE_OK) {
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
       curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effUrl);
+      if (verbose) {
+        std::cerr << "[curlnapi] < status " << status << " " << (effUrl ? std::string(effUrl) : url) << "\n";
+      }
 
       // Sync cookies back to jar
       struct curl_slist *cookies = NULL;

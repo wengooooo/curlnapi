@@ -1,9 +1,10 @@
 {
   "name": "curlnapi-node",
-  "version": "0.1.9",
+  "version": "0.1.12",
   "private": false,
   "description": "Node binding for curl-impersonate with a requests-like API",
   "main": "index.wrapper.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "node examples/test.js"
   },

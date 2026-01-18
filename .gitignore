@@ -10,3 +10,6 @@
 /curlnapi-linux-x64-gnu/curlnapi-node.x64-gnu.node
 /research
 /curlnapi-node/.npmrc
+/examples/storage
+/.trae
+/storage

@@ -10,7 +10,9 @@ export type HttpMethod =
 export interface ImpitOptions {
   timeout?: number;
   followRedirects?: boolean;
-  proxy?: string;
+  debug?: boolean;
+  browser?: string;
+  proxyUrl?: string;
   userAgent?: string;
   referer?: string;
   maxRedirects?: number;

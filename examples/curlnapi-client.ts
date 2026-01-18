@@ -51,7 +51,8 @@ export class CurlNapiHttpClient implements BaseHttpClient {
         return client;
     }
 
-    constructor(options?: Omit<ImpitOptions, 'proxyUrl'> & { maxRedirects?: number }) {
+
+    constructor(options?: ImpitOptions & { maxRedirects?: number }) {
         this.impitOptions = options ?? {};
 
         this.maxRedirects = options?.maxRedirects ?? 10;
@@ -61,24 +62,23 @@ export class CurlNapiHttpClient implements BaseHttpClient {
     /**
      * Flattens the headers of a `HttpRequest` to a format that can be passed to `impit`.
      * @param headers `SimpleHeaders` object
-     * @returns `Record<string, string>` object
+     * @returns `Array<[string, string]>` object
      */
     private intoHeaders<TResponseType extends keyof ResponseTypes>(
         headers?: Exclude<HttpRequest<TResponseType>['headers'], undefined>,
-    ): Headers | undefined {
+    ): Array<[string, string]> | undefined {
         if (!headers) {
             return undefined;
         }
 
-        const result = new Headers();
+        const result: Array<[string, string]> = [];
 
         for (const headerName of Object.keys(headers)) {
             const headerValue = headers[headerName];
 
             for (const value of Array.isArray(headerValue) ? headerValue : [headerValue]) {
                 if (value === undefined) continue;
-
-                result.append(headerName, value);
+                result.push([headerName, value]);
             }
         }
 
@@ -127,12 +127,19 @@ export class CurlNapiHttpClient implements BaseHttpClient {
 
         const url = typeof request.url === 'string' ? request.url : request.url.href;
 
+        const debug = (this.impitOptions as any).debug;
         const impit = this.getClient({
             ...this.impitOptions,
+            ...(debug ? { verbose: true } : {}),
             ...(request?.cookieJar ? { cookieJar: request.cookieJar as ToughCookieJar } : {}),
-            proxyUrl: request.proxyUrl,
+            proxy: request.proxyUrl || this.impitOptions.proxyUrl,
             followRedirects: false,
         });
+
+        if (debug) {
+            console.log('[curlnapi] request', request.method, url);
+            console.log('[curlnapi] request headers', request.headers || {});
+        }
 
         const response = await impit.fetch(url, {
             method: request.method as HttpMethod,
@@ -141,8 +148,20 @@ export class CurlNapiHttpClient implements BaseHttpClient {
             timeout: (request.timeout as { request?: number })?.request,
         });
 
+        if (debug) {
+            console.log('[curlnapi] response status', response.status, response.url);
+            if (response.headers instanceof Headers) {
+                console.log('[curlnapi] response headers', Object.fromEntries(response.headers.entries()));
+            } else if (Array.isArray(response.headers)) {
+                console.log('[curlnapi] response headers', Object.fromEntries(response.headers));
+            }
+        }
+
         if (this.followRedirects && response.status >= 300 && response.status < 400) {
-            const location = response.headers.get('location');
+            const location = response.headers instanceof Headers 
+                ? response.headers.get('location') 
+                : (Array.isArray(response.headers) ? response.headers.find(x => x[0].toLowerCase() === 'location')?.[1] : null);
+
             const redirectUrl = new URL(location ?? '', request.url);
 
             if (!location) {
@@ -189,7 +208,19 @@ export class CurlNapiHttpClient implements BaseHttpClient {
                 responseBody = await response.bytes();
                 break;
             default:
-                throw new Error('Unsupported response type.');
+                // Fallback: 如果没有指定类型（Crawlee 默认可能传入 undefined 或其他），优先按 text 处理，
+                // 除非明确是 buffer 需求。但考虑到兼容性，许多爬虫默认期望 text。
+                // 如果 request.responseType 是 undefined，Crawlee 的默认行为可能依赖于客户端实现。
+                // 这里我们默认返回 text，因为 buffer 会在控制台显示为 <Buffer ...>
+                try {
+                    responseBody = await response.text();
+                    try {
+                        responseBody = JSON.parse(responseBody);
+                    } catch {}
+                } catch {
+                    responseBody = await response.bytes();
+                }
+                break;
         }
 
         return {
@@ -209,7 +240,11 @@ export class CurlNapiHttpClient implements BaseHttpClient {
     ): [Readable, () => { percent: number; transferred: number; total: number }] {
         const responseStream = Readable.fromWeb(response.body as ReadableStream<any>);
         let transferred = 0;
-        const total = Number(response.headers.get('content-length') ?? 0);
+        const contentLength = response.headers instanceof Headers 
+            ? response.headers.get('content-length')
+            : (Array.isArray(response.headers) ? response.headers.find(x => x[0].toLowerCase() === 'content-length')?.[1] : null);
+        
+        const total = Number(contentLength ?? 0);
         responseStream.on('data', (chunk) => {
             transferred += chunk.length;
         });
