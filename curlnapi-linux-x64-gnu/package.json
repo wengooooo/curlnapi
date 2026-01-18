@@ -1,7 +1,7 @@
 {
   "name": "@wengo/curlnapi-linux-x64-gnu",
   "homepage": "https://github.com/wengooooo/curlnapi#readme",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "os": [
     "linux"
   ],

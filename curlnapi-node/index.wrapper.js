@@ -3,7 +3,7 @@ let native = null
 try {
   native = require('./index.js')
 } catch (e) {
-  throw new Error(`curl_cffi couldn't load native bindings. Set VERBOSE=1 for details.`, process.env['VERBOSE'] === '1' ? { cause: e } : undefined)
+  throw new Error(`curlnapi-node couldn't load native bindings. Set VERBOSE=1 for details.`, process.env['VERBOSE'] === '1' ? { cause: e } : undefined)
 }
 
 function canonicalizeHeaders(headers) {
