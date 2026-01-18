@@ -9,7 +9,7 @@
     "test": "node examples/test.js"
   },
   "optionalDependencies": {
-    "@wengo/curlnapi-linux-x64-gnu": "^0.1.12",
+    "@wengo/curlnapi-linux-x64-gnu": "^0.1.15",
     "@wengo/curlnapi-win32-x64-msvc": "^0.1.12"
   },
   "dependencies": {
