@@ -16,7 +16,7 @@ function main(){
   else if(plat==='linux' && arch==='x64') outDir = path.join(root,'curlnapi-linux-x64-gnu')
   else throw new Error(`unsupported platform: ${plat} ${arch}`)
   if(plat==='win32') outName = 'curlnapi-node.win32-x64-msvc'
-  else if(plat==='linux') outName = 'curlnapi-node.x64-gnu'
+  else if(plat==='linux') outName = 'curlnapi-node.linux-x64-gnu'
   mkdir(outDir)
   cleanFiles(outDir)
   cp(nodePath, path.join(outDir, `${outName}.node`))
