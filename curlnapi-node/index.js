@@ -36,7 +36,8 @@ function resolveNative() {
   const arch = os.arch()
   const candidates = []
   if (platform === 'win32' && arch === 'x64') candidates.push('@wengo/curlnapi-win32-x64-msvc')
-  if (platform === 'linux' && arch === 'x64') candidates.push(isMusl() ? '@wengo/curlnapi-linux-x64-musl' : '@wengo/curlnapi-linux-x64-gnu')
+  // if (platform === 'linux' && arch === 'x64') candidates.push(isMusl() ? '@wengo/curlnapi-linux-x64-musl' : '@wengo/curlnapi-linux-x64-gnu')
+  if (platform === 'linux' && arch === 'x64') candidates.push('@wengo/curlnapi-linux-x64-gnu')
   if (platform === 'darwin' && arch === 'x64') candidates.push('curlnapi-darwin-x64')
   if (platform === 'darwin' && arch === 'arm64') candidates.push('curlnapi-darwin-arm64')
   for (const pkg of candidates) {

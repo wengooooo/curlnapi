@@ -629,7 +629,7 @@ private:
   uint32_t maxRedirects{0};
   int httpVersion{0};
   std::string ipResolve;
-  std::string dohUrl;
+  std::string dohUrl{"https://cloudflare-dns.com/dns-query"};
   std::string dohResolveString;
   bool ignoreDohTlsErrors{false};
   std::string userAgent;

@@ -19,6 +19,7 @@ export interface ImpitOptions {
   httpVersion?: number | '2' | '3' | 'h2' | 'h3';
   ipResolve?: 'v4' | 'v6' | string;
   dohUrl?: string;
+  dohResolve?: string;
   ignoreTlsErrors?: boolean;
   headers?: Record<string, string>;
   cookieJar?: {

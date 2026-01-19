@@ -12,7 +12,7 @@ const httpClient = new CurlNapiHttpClient({
     // 如有需要，可开启忽略 TLS 错误
     ignoreTlsErrors: true,
     debug: true,
-    verbose: true,
+    dohResolve: process.env.DOH_RESOLVE || '',
 });
 
 const crawler = new CheerioCrawler({
